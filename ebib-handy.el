@@ -6,7 +6,7 @@
 ;; Author: Feng Shu <tumashu@163.com>
 ;; URL: https://github.com/tumashu/ebib-handy
 ;; Version: 0.0.1
-;; Package-Requires: ((ebib "1.0"))
+;; Package-Requires: ((emacs "24.4") (ebib "1.0") (chinese-pyim "0.1"))
 
 ;;; License:
 
@@ -44,8 +44,6 @@
 ;; (require 'ebib-handy)
 ;; (ebib-handy-enable)
 
-;; (require 'org)
-;; (org-add-link-type "cite" 'ebib-handy) ;org cite link setting
 ;; (setq ebib-extra-fields
 ;;       '((BibTeX "keywords" "abstract" "timestamp"
 ;;                 "file"  "url" "crossref" "annote" "doi")
@@ -66,6 +64,7 @@
 (require 'ebib)
 (require 'bibtex)
 (require 'reftex)
+(require 'org)
 
 (defgroup ebib-handy nil
   "Ebib window as a cite chooser when write org file"
@@ -81,13 +80,14 @@
   :group 'ebib-handy
   :type 'numeric)
 
-(defcustom ebib-handy-bibtex-abstact-fill-column 80
+(defcustom ebib-handy-bibtex-fill-column 80
   "Default column when wash bib file by ebib-handy."
   :group 'ebib-handy
   :type 'numeric)
 
-(defcustom ebib-handy-org-cite-link-format " [[cite:%s][(%s %s)]]"
-  "Org cite link format used by ebib-handy."
+(defcustom ebib-handy-org-cite-link-style " [[cite:%key][(%author %year)]]"
+  "Org cite link format used by ebib-handy. %key, %author and %year will
+be replaced with according value."
   :group 'ebib-handy
   :type 'string)
 
@@ -172,16 +172,16 @@
          (ebib--multiline-edit
           (list 'field (ebib-db-get-filename ebib--cur-db)
                 (ebib--cur-entry-key) field)
-          (ebib-handy-wash-text
+          (ebib-handy--wash-text
            (or (ebib-db-unbrace text) "") fill-column t))
          (setq header-line-format
                (format "* View %s buffer. Edit `e', Save `S', Quit `q'. " field))
          (view-mode 1)
-         (ebib-handy-view-mode-map-config))))
+         (ebib-handy--view-mode-map-config))))
     ((default)
      (beep))))
 
-(defun ebib-handy-wash-text (text &optional fill-width indent)
+(defun ebib-handy--wash-text (text &optional fill-width indent)
   "Insert text into a temp buffer and wash it,
 if `fill-width' is a number, the temp buffer will be filled to the number,
 if `indent' is a number ,the temp buffer will be indent the number,
@@ -238,7 +238,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
       (indent-region (point-min) (point-max) indent))
     (buffer-string)))
 
-(defun ebib-handy-view-mode-map-config ()
+(defun ebib-handy--view-mode-map-config ()
   (use-local-map
    (let ((map view-mode-map))
      (define-key map "C" 'ebib-handy-cancel-multiline-buffer)
@@ -250,7 +250,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
      (define-key map "S" 'ebib-save-from-multiline-buffer)
      map)))
 
-(defun ebib-handy-multiline-mode-map-config ()
+(defun ebib-handy--multiline-mode-map-config ()
   (use-local-map
    (let ((map ebib-multiline-mode-map))
      (define-key map "\C-c\C-c" 'ebib-handy-quit-multiline-buffer-and-save)
@@ -262,7 +262,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
   (ebib-multiline-mode 1)
   (setq header-line-format
         "* Edit buffer. Save+Quit `C-c C-c', Abort `C-c C-k' ")
-  (ebib-handy-multiline-mode-map-config))
+  (ebib-handy--multiline-mode-map-config))
 
 (defun ebib-handy-quit-multiline-buffer-and-save ()
   (interactive)
@@ -337,12 +337,12 @@ this function  derived from `article-strip-multiple-blank-lines' in
     (if (string= match-string "")
         ""
       (cl-delete-if
-       (lambda (s)
-         (let ((case-fold-search t)
-               (string (replace-regexp-in-string "[ +-=_]+" "" s)))
-           (not (or (string-match match-string string)
-                    (if (featurep 'chinese-pyim)
-                        (string-match match-string (pyim-hanzi2pinyin string)))))))
+       #'(lambda (str)
+           (let ((case-fold-search t)
+                 (string (replace-regexp-in-string "[ +-=_]+" "" str)))
+             (not (or (string-match-p match-string string)
+                      (when (featurep 'chinese-pyim)
+                        (string-match-p match-string (pyim-hanzi2pinyin string)))))))
        files-list))))
 
 (defun ebib-handy-directory-files-recursively (&optional directory regexp)
@@ -441,21 +441,27 @@ this function  derived from `article-strip-multiple-blank-lines' in
 (defun ebib-handy-push-bibtex-key (&optional leave-ebib-window)
   (interactive)
   (let ((buffer-mode (buffer-local-value 'major-mode (get-buffer ebib-handy-push-buffer))))
-    (cond((string= buffer-mode "org-mode")
-          (ebib-handy-push-org-cite-link leave-ebib-window))
-         (t (ebib-push-bibtex-key)
-            (when leave-ebib-window
-              (ebib-db-unmark-entry 'all ebib--cur-db)
-              (ebib--fill-index-buffer)
-              (setq ebib-handy-push-buffer nil)
-              (ebib-leave-ebib-windows))))))
+    (cond ((string= buffer-mode "org-mode")
+           (ebib-handy-push-org-cite-link leave-ebib-window))
+          (t (ebib-push-bibtex-key)
+             (when leave-ebib-window
+               (ebib-db-unmark-entry 'all ebib--cur-db)
+               (ebib--fill-index-buffer)
+               (setq ebib-handy-push-buffer nil)
+               (ebib-leave-ebib-windows))))))
 
-(defun ebib-handy-format-org-cite-link (key)
+(defun ebib-handy--format-org-cite-link (key)
   (let ((author (car (split-string
                       (or (ebib-db-get-field-value 'author key ebib--cur-db 'noerror 'unbraced 'xref)
                           "  ") "[ \t\n]+and[ \t\n]+\\|," )))
         (year (or (ebib-db-get-field-value 'year key ebib--cur-db 'noerror 'unbraced 'xref) "20??")))
-    (format ebib-handy-org-cite-link-format key author year)))
+    (replace-regexp-in-string
+     "%year" year
+     (replace-regexp-in-string
+      "%author" author
+      (replace-regexp-in-string
+       "%key" key
+       ebib-handy-org-cite-link-style)))))
 
 (defun ebib-handy-push-org-cite-link (&optional leave-ebib-window)
   "Pushes the cite link of current entry to a org-mode buffer."
@@ -465,18 +471,18 @@ this function  derived from `article-strip-multiple-blank-lines' in
      (let* ((key (ebib--cur-entry-key))
             (citation-string
              (if (ebib-db-marked-entries-p ebib--cur-db)
-                 (mapconcat #'ebib-handy-format-org-cite-link (ebib-db-list-marked-entries ebib--cur-db) " ")
-               (ebib-handy-format-org-cite-link key))))
-       ;; 将citation-string插入到ebib-handy-push-buffer变量所
-       ;; 对应的buffer, (调用ebib-handy命令时,会设置ebib-handy-push-buffer变量)
+                 (mapconcat #'ebib-handy--format-org-cite-link (ebib-db-list-marked-entries ebib--cur-db) " ")
+               (ebib-handy--format-org-cite-link key))))
+       ;; 将 citation-string 插入到 ebib-handy-push-buffer 变量所
+       ;; 对应的 buffer, (调用ebib-handy命令时,会设置ebib-handy-push-buffer变量)
        (when citation-string
          (with-current-buffer ebib-handy-push-buffer
            ;; (let* ((point1 (or (save-excursion (search-forward "[[" nil t)) (+ 1 (point-max))))
-           ;;         (point2 (save-excursion (search-forward "]]" nil t)))
-           ;;         (point3 (save-excursion (search-backward "[[" nil t)))
-           ;;         (point4 (or (save-excursion (search-backward "]]" nil t)) -1)))
+           ;;        (point2 (save-excursion (search-forward "]]" nil t)))
+           ;;        (point3 (save-excursion (search-backward "[[" nil t)))
+           ;;        (point4 (or (save-excursion (search-backward "]]" nil t)) -1)))
            ;;   (when (and point2 point3 (> point1 point2) (> point3 point4))
-           ;;      (search-forward "]]" nil t)))
+           ;;     (search-forward "]]" nil t)))
            (insert citation-string)
            (message "Pushed \"%s\" to buffer: \"%s\"" citation-string ebib-handy-push-buffer))
          (setq ebib-handy-the-last-entry-key (ebib--cur-entry-key))
@@ -498,7 +504,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
     (ebib--execute-when
       ((entries)
        (when (yes-or-no-p (concat (format "Reformat bibfile: %s  " current-bib-file)))
-         (ebib-save-current-database)
+         (ebib-save-current-database t)
          (message "Reformat ... ")
          (with-current-buffer (find-file-noselect current-bib-file)
            (goto-char (point-min))
@@ -513,7 +519,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
       ((default)
        (beep)))))
 
-(defun ebib-handy-bibtex-wash-field (field)
+(defun ebib-handy--bibtex-wash-field (field)
   "Wash the content of field"
   (goto-char begin)
   (let ((field-content (bibtex-autokey-get-field field))
@@ -523,9 +529,9 @@ this function  derived from `article-strip-multiple-blank-lines' in
       (bibtex-kill-field))
     (bibtex-make-field
      (list field nil
-           (ebib-handy-wash-text
+           (ebib-handy--wash-text
             field-content
-            ebib-handy-bibtex-abstact-fill-column
+            ebib-handy-bibtex-fill-column
             (+ bibtex-text-indentation 1 )) nil) t)))
 
 (defun ebib-handy-bibtex-reformat ()
@@ -549,22 +555,23 @@ this function  derived from `article-strip-multiple-blank-lines' in
              (bibtex-make-field '("language" nil "Chinese" nil) t))
 
            ;; Add alias field
-           (goto-char begin)
-           (let ((alias-field (bibtex-search-forward-field "alias" t))
-                 (title (bibtex-autokey-get-field "title"))
-                 (author (bibtex-autokey-get-field "author")))
-             (when alias-field
-               (goto-char (car (cdr alias-field)))
-               (bibtex-kill-field))
-             (bibtex-make-field
-              (list "alias" nil
-                    (replace-regexp-in-string
-                     "\n" ""
-                     (pyim-hanzi2pinyin-simple
-                      (concat author ", " title) t)) nil) t))
+           (when (featurep 'chinese-pyim)
+             (goto-char begin)
+             (let ((alias-field (bibtex-search-forward-field "alias" t))
+                   (title (bibtex-autokey-get-field "title"))
+                   (author (bibtex-autokey-get-field "author")))
+               (when alias-field
+                 (goto-char (car (cdr alias-field)))
+                 (bibtex-kill-field))
+               (bibtex-make-field
+                (list "alias" nil
+                      (replace-regexp-in-string
+                       "\n" ""
+                       (pyim-hanzi2pinyin-simple
+                        (concat author ", " title) t)) nil) t)))
 
            ;; Wash abstract field
-           (ebib-handy-bibtex-wash-field "abstract")
+           (ebib-handy--bibtex-wash-field "abstract")
 
            ;; Add autokey
            (goto-char begin)
@@ -603,9 +610,58 @@ this function  derived from `article-strip-multiple-blank-lines' in
                                            (cons auto-key (split-string (or keyhistory "") "; "))))
                                  "; ") nil) t)))))))))
 
+(defun ebib-handy--bibtex-chinese-autokey-setup ()
+  "Bibtex 中文文献 autokey 生成规则：
+
+    <第一作者拼音><年份><标题前两个汉字字符拼音>
+
+比如：[3] 徐琳玲. P公司标准成本制度研究[D]. 华东理工大学, 2013.
+将生成：xulinling2013pgong
+
+注：bibtex开启了词法绑定。"
+  (setq bibtex-autokey-names 1
+        bibtex-autokey-name-separator ""
+        bibtex-autokey-year-length 4
+        bibtex-autokey-name-year-separator ""
+        bibtex-autokey-year-title-separator ""
+        bibtex-autokey-titlewords 2
+        bibtex-autokey-titleword-length 2
+        bibtex-autokey-titlewords-stretch 0
+        bibtex-autokey-titleword-separator "_"
+        bibtex-autokey-titleword-ignore nil
+        bibtex-autokey-before-presentation-function
+        #'(lambda (x)
+            (downcase (pyim-hanzi2pinyin-simple x)))))
+
+(defun ebib-handy--bibtex-english-autokey-setup ()
+  "Bibtex 英文文献 autokey 生成规则。"
+  (setq bibtex-autokey-names 1
+        bibtex-autokey-name-separator ""
+        bibtex-autokey-year-length 4
+        bibtex-autokey-name-year-separator ""
+        bibtex-autokey-year-title-separator ""
+        bibtex-autokey-titlewords 3
+        bibtex-autokey-titleword-length 5
+        bibtex-autokey-titlewords-stretch 0
+        bibtex-autokey-titleword-separator "_"
+        bibtex-autokey-titleword-ignore
+        '("A" "An" "On" "The" "Eine?" "Der" "Die" "Das"
+          "[^[:upper:]].*" ".*[^[:upper:][:lower:]0-9].*")))
+
+(defun ebib-handy--bibtex-autokey-get-title (orig-fun &rest args)
+  (let ((case-fold-search t)
+        (titlestring (bibtex-autokey-get-field "title")))
+    (if (string-match-p "\\cc" titlestring)
+        (ebib-handy--bibtex-chinese-autokey-setup)
+      (ebib-handy--bibtex-english-autokey-setup))
+    (apply orig-fun args)))
+
 (defun ebib-handy-enable ()
+  (interactive)
   (advice-add 'ebib--display-entry-key :override #'ebib-handy--display-entry-key)
-  ;; ebib mode keybinding
+  (advice-add 'bibtex-autokey-get-title :around #'ebib-handy--bibtex-autokey-get-title)
+  ;; org cite link setting
+  (org-add-link-type "cite" 'ebib-handy)
   (ebib-key index "\C-xb"
             (lambda ()
               (interactive)
@@ -623,7 +679,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
   (ebib-key index "p" ebib-handy-push-bibtex-key)
   (ebib-key index "q" ebib-force-quit)
   (ebib-key index "f" ebib-handy-view-file)
-  (ebib-key index "\C-k" ebib-handy-reformat-all-entries)
+  (ebib-key index "\C-cR" ebib-handy-reformat-all-entries)
   (ebib-key index [(return)] ebib-select-and-popup-entry))
 ;; #+END_SRC
 

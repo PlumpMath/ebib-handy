@@ -670,7 +670,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
             (lambda ()
               (interactive)
               (ebib-handy-push-bibtex-key t)))
-  (ebib-key index "\C-cb" ebib-handy)
+  (ebib-key index "\C-xb" ebib-handy)
   (ebib-key index "\C-xk" ebib-leave-ebib-windows)
   (ebib-key index "\C-xq" ebib-force-quit)
   (ebib-key index "v" ebib-handy-view-and-edit-abstract)
@@ -678,7 +678,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
   (ebib-key index "p" ebib-handy-push-bibtex-key)
   (ebib-key index "q" ebib-force-quit)
   (ebib-key index "f" ebib-handy-view-file)
-  (ebib-key index "\C-cR" ebib-handy-reformat-all-entries)
+  (ebib-key index "R" ebib-handy-reformat-all-entries)
   (ebib-key index [(return)] ebib-select-and-popup-entry))
 ;; #+END_SRC
 

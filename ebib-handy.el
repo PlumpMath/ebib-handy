@@ -357,7 +357,7 @@ this function  derived from `article-strip-multiple-blank-lines' in
              when (string-match regexp (file-name-nondirectory file))
              collect file into ret
              when (file-directory-p file)
-             nconc (owp/directory-files-recursively file regexp) into ret
+             nconc (ebib-handy-directory-files-recursively file regexp) into ret
              finally return ret)))
 
 (defun ebib-handy-view-file ()

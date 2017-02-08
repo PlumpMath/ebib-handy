@@ -31,6 +31,9 @@
 
 ;; * README                                                             :README:
 ;; ** Introduce
+
+;; This package cannot work again, please don't install it .....
+
 ;; ebib-handy is a ebib tool, which can let ebib become a cite chooser.
 ;; [[./snapshots/ebib-handy.gif]]
 
@@ -288,48 +291,48 @@ this function  derived from `article-strip-multiple-blank-lines' in
   (with-current-ebib-buffer
     'index
     (with-ebib-buffer-writable
-      (setq cursor-type t)
-      (insert (concat
-               ;; entry key
-               (let* ((list (ebib-handy--split-key entry-key))
-                      (str1 (car list))
-                      (str2 (car (cdr list))))
-                 (concat
-                  (propertize str1 'face 'ebib-handy-display-key1-face)
-                  (propertize (format "%-20s" (or str2 ""))
-                              'face 'ebib-handy-display-key2-face)
-                  (propertize (make-string (max (- 20 (length str1)) 0) ? )
-                              'face 'ebib-handy-display-key3-face)))
-               ;; author
-               (propertize
-                (car (split-string
-                      (or (ebib-db-get-field-value 'author entry-key ebib--cur-db 'noerror 'unbraced)
-                          "  ") "[ \t\n]+and[ \t\n]+" ))
-                'face 'ebib-handy-display-author-face)
-               ;; separator
-               (propertize ". " 'face 'ebib-handy-display-separator-face)
-               ;; year
-               (propertize
-                (or (ebib-db-get-field-value 'year entry-key ebib--cur-db 'noerror 'unbraced 'xref) "20??")
-                'face 'ebib-handy-display-year-face)
-               ;; separator
-               (propertize ". " 'face 'ebib-handy-display-separator-face)
-               ;; title
-               (propertize
-                (ebib-handy--remove-newlines
-                 (or (ebib-db-get-field-value 'title entry-key ebib--cur-db 'noerror 'unbraced) ""))
-                'face 'ebib-handy-display-title-face)
-               ;; separator
-               (propertize ". " 'face 'ebib-handy-display-separator-face)
-               ;; journal publisher or school
-               (propertize
-                (ebib-handy--remove-newlines
-                 (or (ebib-db-get-field-value 'journal entry-key ebib--cur-db 'noerror 'unbraced)
-                     (ebib-db-get-field-value 'publisher entry-key ebib--cur-db 'noerror 'unbraced)
-                     (ebib-db-get-field-value 'school entry-key ebib--cur-db 'noerror 'unbraced)
-                     ""))
-                'face 'ebib-handy-display-publisher-face)
-               "\n")))))
+     (setq cursor-type t)
+     (insert (concat
+              ;; entry key
+              (let* ((list (ebib-handy--split-key entry-key))
+                     (str1 (car list))
+                     (str2 (car (cdr list))))
+                (concat
+                 (propertize str1 'face 'ebib-handy-display-key1-face)
+                 (propertize (format "%-20s" (or str2 ""))
+                             'face 'ebib-handy-display-key2-face)
+                 (propertize (make-string (max (- 20 (length str1)) 0) ? )
+                             'face 'ebib-handy-display-key3-face)))
+              ;; author
+              (propertize
+               (car (split-string
+                     (or (ebib-db-get-field-value 'author entry-key ebib--cur-db 'noerror 'unbraced)
+                         "  ") "[ \t\n]+and[ \t\n]+" ))
+               'face 'ebib-handy-display-author-face)
+              ;; separator
+              (propertize ". " 'face 'ebib-handy-display-separator-face)
+              ;; year
+              (propertize
+               (or (ebib-db-get-field-value 'year entry-key ebib--cur-db 'noerror 'unbraced 'xref) "20??")
+               'face 'ebib-handy-display-year-face)
+              ;; separator
+              (propertize ". " 'face 'ebib-handy-display-separator-face)
+              ;; title
+              (propertize
+               (ebib-handy--remove-newlines
+                (or (ebib-db-get-field-value 'title entry-key ebib--cur-db 'noerror 'unbraced) ""))
+               'face 'ebib-handy-display-title-face)
+              ;; separator
+              (propertize ". " 'face 'ebib-handy-display-separator-face)
+              ;; journal publisher or school
+              (propertize
+               (ebib-handy--remove-newlines
+                (or (ebib-db-get-field-value 'journal entry-key ebib--cur-db 'noerror 'unbraced)
+                    (ebib-db-get-field-value 'publisher entry-key ebib--cur-db 'noerror 'unbraced)
+                    (ebib-db-get-field-value 'school entry-key ebib--cur-db 'noerror 'unbraced)
+                    ""))
+               'face 'ebib-handy-display-publisher-face)
+              "\n")))))
 
 (defun ebib-handy-get-matched-files (files-list match-str)
   (let ((match-string (replace-regexp-in-string "[ +-=_]+" "" match-str)))

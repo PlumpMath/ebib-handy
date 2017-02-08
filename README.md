@@ -1,22 +1,35 @@
-- [README](#readme)
-  - [Introduce](#introduce)
-  - [Install](#install)
-  - [Configure](#configure)
-  - [Usage](#usage)
+- [README](#org7ed6be1)
+  - [Introduce](#org82b749c)
+  - [Install](#org35e96a6)
+  - [Configure](#orgff15667)
+  - [Usage](#org3297ef1)
 
-# README<a id="org9117e32"></a>
 
-## Introduce<a id="org55bd972"></a>
+<a id="org7ed6be1"></a>
 
-ebib-handy is a ebib tool, which can let ebib become a cite chooser.
-![img](./snapshots/ebib-handy.gif)
+# README
 
-## Install<a id="orgb15aaa0"></a>
+
+<a id="org82b749c"></a>
+
+## Introduce
+
+This package cannot work again, please don't install it &#x2026;..
+
+ebib-handy is a ebib tool, which can let ebib become a cite chooser. ![img](./snapshots/ebib-handy.gif)
+
+
+<a id="org35e96a6"></a>
+
+## Install
 
 1.  Config melpa: <http://melpa.org/#/getting-started>
 2.  M-x package-install RET ebib-handy RET
 
-## Configure<a id="orge8af8b7"></a>
+
+<a id="orgff15667"></a>
+
+## Configure
 
     (require 'ebib-handy)
     (ebib-handy-enable)
@@ -27,7 +40,10 @@ ebib-handy is a ebib tool, which can let ebib become a cite chooser.
             (biblatex "keywords" "abstract" "timestamp"
                       "file"  "url" "crossref" "annote" "doi")))
 
-## Usage<a id="org5cf7f8d"></a>
+
+<a id="org3297ef1"></a>
+
+## Usage
 
     (global-set-key "\C-c b" 'ebib-handy)
 
